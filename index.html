@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Battle Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>Card Battle Game</h1>
+        <div class="deck-area">
+            <div id="deck">
+                <img src="images/card-back.png" alt="Deck" class="deck-card">
+                <span id="deck-count">Deck: 30</span>
+            </div>
+        </div>
+        <div class="health-display">
+            <div id="player-health">Player Health: 30 | Mana: 1/1</div>
+            <div id="boss-health">Boss Health: 30</div>
+        </div>
+        <div class="last-played">
+            <div id="player-last">Player's Last Card: None</div>
+            <div id="boss-last">Boss's Last Card: None</div>
+        </div>
+        <div class="battle-area">
+            <div class="card-display">
+                <h3>Player's Card</h3>
+                <div id="player-card">?</div>
+            </div>
+            <div class="card-display">
+                <h3>Boss's Card</h3>
+                <div id="boss-card">?</div>
+            </div>
+        </div>
+        <div class="player-hand">
+            <h3>Your Hand</h3>
+            <div id="hand"></div>
+        </div>
+        <div class="ability-info">
+            <h3>Card Ability</h3>
+            <div id="ability-desc">Select a card to see its ability.</div>
+        </div>
+        <div class="controls">
+            <button id="submit-card" disabled>Submit</button>
+        </div>
+        <div class="result-area">
+            <h3>Turn Outcome</h3>
+            <div id="result"></div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
