@@ -4,14 +4,14 @@ class Card {
         this.type = type; // 'rock', 'paper', 'scissors'
         this.damage = damage; // 1 to 10
         this.cost = cost; // 1, 2, or 3 based on damage
-        this.ability = ability; // 'heal', 'debuff', 'shield', 'burnOpponent', or null
+        this.ability = ability; // 'heal', 'debuff', 'shield', or null
     }
 }
 
-// Generate deck with new ability
+// Generate deck
 function generateDeck() {
     const types = ['rock', 'paper', 'scissors'];
-    const abilities = ['heal', 'debuff', 'shield', 'burnOpponent'];
+    const abilities = ['heal', 'debuff', 'shield'];
     const deck = [];
     types.forEach(type => {
         for (let damage = 1; damage <= 10; damage++) {
@@ -48,17 +48,15 @@ let bossMana = 3;
 let playerManaReset = false;
 let bossManaReset = false;
 let isFirstTurn = true;
-let playerGoesFirst = true;
+let playerGoesFirst = true; // Track who goes first
 let playedCards = []; // Player's played cards
 let bossPlayedCards = []; // Boss's played cards
-let burnOpponentActive = false; // Flag for burnOpponent ability
 
 // Define ability descriptions for the info box
 const abilityDescriptions = {
     heal: 'Restore 3 health when played.',
     debuff: "Reduce opponent's damage by 2.",
-    shield: 'Block 3 damage when played.',
-    burnOpponent: 'Burn one of your opponent\'s cards.'
+    shield: 'Block 3 damage when played.'
 };
 
 // Draw card for player
@@ -209,121 +207,75 @@ function bossSelectCards() {
     return validCombinations[Math.floor(Math.random() * validCombinations.length)];
 }
 
-// Add burnOpponent listeners
-function addBurnOpponentListeners() {
-    const bossCards = document.querySelectorAll('#boss-hand .card');
-    bossCards.forEach((cardDiv, index) => {
-        if (bossHand[index]) {
-            cardDiv.addEventListener('click', burnOpponentCard);
-        }
-    });
-}
-
-// Remove burnOpponent listeners
-function removeBurnOpponentListeners() {
-    const bossCards = document.querySelectorAll('#boss-hand .card');
-    bossCards.forEach(cardDiv => {
-        cardDiv.removeEventListener('click', burnOpponentCard);
-    });
-}
-
-// Burn opponent's card
-function burnOpponentCard(e) {
-    const index = parseInt(e.currentTarget.dataset.index, 10);
-    if (bossHand[index]) {
-        bossDiscard.push(bossHand[index]);
-        bossHand[index] = null;
-        displayBossHand();
-        removeBurnOpponentListeners();
-        burnOpponentActive = false;
+// Determine the winner based on card types
+function determineWinner(playerType, opponentType) {
+    if (playerType === opponentType) {
+        return 'tie'; // No damage dealt
+    } else if (
+        (playerType === 'rock' && opponentType === 'scissors') ||
+        (playerType === 'paper' && opponentType === 'rock') ||
+        (playerType === 'scissors' && opponentType === 'paper')
+    ) {
+        return 'player'; // Player wins
+    } else {
+        return 'opponent'; // Opponent wins
     }
 }
 
-// Resolve burnOpponent ability
-function resolveBurnOpponent() {
-    if (bossHand.every(card => card === null)) {
-        alert('Opponent has no cards to burn.');
-        burnOpponentActive = false;
-        return;
-    }
-    alert('Select an opponent\'s card to burn.');
-    addBurnOpponentListeners();
+// Calculate damage for the winning side
+function calculateDamage(cards) {
+    let damage = cards.reduce((sum, card) => sum + card.damage, 0);
+    // Apply abilities like debuff or shield here if needed
+    return damage;
 }
 
-// Resolve turn
+// Resolve turn with correct damage application
 function resolveTurn() {
-    const bossCardIndices = bossSelectCards();
-    bossPlayedCards = bossCardIndices.map(idx => bossHand[idx]);
-    const totalBossCost = bossPlayedCards.reduce((sum, card) => sum + card.cost, 0);
-    bossMana -= totalBossCost;
-    bossCardIndices.forEach(idx => bossHand[idx] = null);
+    const playerType = playedCards.length > 0 ? playedCards[0].type : null;
+    const opponentType = bossPlayedCards.length > 0 ? bossPlayedCards[0].type : null;
 
     let playerDamage = 0;
     let bossDamage = 0;
 
-    if (playerGoesFirst) {
-        playerDamage = calculateDamage(playedCards, bossPlayedCards);
-        bossDamage = calculateDamage(bossPlayedCards, playedCards);
-    } else {
-        bossDamage = calculateDamage(bossPlayedCards, playedCards);
-        playerDamage = calculateDamage(playedCards, bossPlayedCards);
+    // Determine the winner based on types
+    if (playerType && opponentType) {
+        const winner = determineWinner(playerType, opponentType);
+        if (winner === 'player') {
+            playerDamage = calculateDamage(playedCards);
+        } else if (winner === 'opponent') {
+            bossDamage = calculateDamage(bossPlayedCards);
+        }
+        // If tie, both damages remain 0
+    } else if (playerType) {
+        // Only player played a card
+        playerDamage = calculateDamage(playedCards);
+    } else if (opponentType) {
+        // Only boss played a card
+        bossDamage = calculateDamage(bossPlayedCards);
     }
 
+    // Apply damage to health
     bossHealth -= playerDamage;
     playerHealth -= bossDamage;
 
-    if (playerDamage > bossDamage) {
-        playerGoesFirst = true;
-    } else if (bossDamage > playerDamage) {
-        playerGoesFirst = false;
-    }
+    // Update UI
+    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+    document.getElementById('boss-health').textContent = `Opponent Health: ${bossHealth} | Mana: ${bossMana}`;
+    let resultText = `Player Damage: ${playerDamage}\n`;
+    resultText += `Boss Damage: ${bossDamage}\n`;
+    document.getElementById('result').textContent = resultText;
 
-    displayBossPlayedCards();
-    displayHand();
-    displayBossHand();
-    document.getElementById('result').textContent = `Player dealt ${playerDamage} damage | Boss dealt ${bossDamage} damage`;
-
+    // Check for win condition
     if (playerHealth <= 0) {
-        alert('Opponent wins!');
+        alert('Boss wins!');
         resetGame();
-        return;
     } else if (bossHealth <= 0) {
         alert('Player wins!');
         resetGame();
-        return;
+    } else {
+        document.getElementById('next-round').style.display = 'inline-block';
+        document.getElementById('end-turn').disabled = true;
     }
-
-    isFirstTurn = false;
-    document.getElementById('end-turn').disabled = true;
-    document.getElementById('next-round').disabled = false;
-}
-
-// Calculate damage (simplified for this example)
-function calculateDamage(attackerCards, defenderCards) {
-    let damage = attackerCards.reduce((sum, card) => sum + card.damage, 0);
-    attackerCards.forEach(card => {
-        if (card.ability === 'heal') playerHealth = Math.min(playerHealth + 3, 30);
-        if (card.ability === 'debuff') damage -= 2;
-        if (card.ability === 'shield') damage = Math.max(0, damage - 3);
-    });
-    return damage > 0 ? damage : 0;
-}
-
-// Display boss played cards
-function displayBossPlayedCards() {
-    const bossCardDiv = document.getElementById('boss-card');
-    bossCardDiv.innerHTML = '';
-    bossPlayedCards.forEach(card => {
-        const cardDiv = document.createElement('div');
-        cardDiv.classList.add('card');
-        cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
-        cardDiv.innerHTML = `
-            <div class="damage">${card.damage}</div>
-            <div class="mana-cost">${card.cost}</div>
-            ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
-        `;
-        bossCardDiv.appendChild(cardDiv);
-    });
 }
 
 // Start turn
@@ -386,10 +338,6 @@ function resetGame() {
 
 // Button handlers
 document.getElementById('end-turn').onclick = () => {
-    if (burnOpponentActive) {
-        alert('Please select an opponent\'s card to burn first.');
-        return;
-    }
     resolveTurn();
 };
 
@@ -414,10 +362,6 @@ document.getElementById('player-card').addEventListener('dragover', (e) => {
 
 document.getElementById('player-card').addEventListener('drop', (e) => {
     e.preventDefault();
-    if (burnOpponentActive) {
-        alert('Please select an opponent\'s card to burn before playing another card.');
-        return;
-    }
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (playerHand[index] !== null) {
         const cardToPlay = playerHand[index];
@@ -435,11 +379,6 @@ document.getElementById('player-card').addEventListener('drop', (e) => {
         displayHand();
         displayPlayedCards();
         document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
-
-        if (cardToPlay.ability === 'burnOpponent') {
-            burnOpponentActive = true;
-            resolveBurnOpponent();
-        }
     }
 });
 
@@ -450,10 +389,6 @@ document.getElementById('burn-slot').addEventListener('dragover', (e) => {
 
 document.getElementById('burn-slot').addEventListener('drop', (e) => {
     e.preventDefault();
-    if (burnOpponentActive) {
-        alert('Please select an opponent\'s card to burn before burning your own card.');
-        return;
-    }
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (playerHand[index] !== null) {
         const burnedCard = playerHand[index];
