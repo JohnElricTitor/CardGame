@@ -36,51 +36,115 @@ function shuffle(array) {
 // Game state
 const baseDeck = generateDeck();
 let playerDeck = shuffle([...baseDeck]);
-let playerHand = [];
+let playerHand = Array(4).fill(null);
 let playerDiscard = [];
 let bossDeck = shuffle([...baseDeck]);
-let bossHealth = 30;
+let bossHand = Array(4).fill(null);
+let bossDiscard = [];
 let playerHealth = 30;
-let playerMaxMana = 3;
-let playerCurrentMana = 3;
+let bossHealth = 30;
+let playerMana = 3;
+let bossMana = 3;
+let playerManaReset = false;
+let bossManaReset = false;
 let selectedCardIndices = [];
+let revealedIndices = [];
+let cardRevealCost = 2;
+let isRevealing = false;
+let playerPassed = false;
+let bossPassed = false;
+let isFirstTurn = true;
 
-// Draw card
+// Draw card for player
 function drawCard() {
     if (playerDeck.length === 0) {
         playerDeck = shuffle([...playerDiscard]);
         playerDiscard = [];
     }
-    const card = playerDeck.pop();
-    playerHand.push(card);
-    document.getElementById('deck-count').textContent = `Deck: ${playerDeck.length}`;
-    return card;
+    if (playerDeck.length > 0) {
+        return playerDeck.pop();
+    }
+    return null;
 }
 
-// Initial hand
-while (playerHand.length < 4) drawCard();
+// Draw card for boss
+function drawBossCard() {
+    if (bossDeck.length === 0) {
+        bossDeck = shuffle([...bossDiscard]);
+        bossDiscard = [];
+    }
+    if (bossDeck.length > 0) {
+        return bossDeck.pop();
+    }
+    return null;
+}
 
-// Display hand
+// Initial hands
+for (let i = 0; i < 4; i++) {
+    playerHand[i] = drawCard();
+    bossHand[i] = drawBossCard();
+}
+
+// Display player hand
 function displayHand() {
     const handDiv = document.getElementById('hand');
     handDiv.innerHTML = '';
-    let totalCost = selectedCardIndices.reduce((sum, idx) => sum + playerHand[idx].cost, 0);
     playerHand.forEach((card, index) => {
-        const cardDiv = document.createElement('div');
-        cardDiv.classList.add('card');
-        if (selectedCardIndices.includes(index)) cardDiv.classList.add('selected');
-        cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
-        cardDiv.onclick = () => selectCard(index);
-
-        cardDiv.innerHTML = `
-            <div class="damage">${card.damage}</div>
-            <div class="mana-cost">${card.cost}</div>
-            ${card.ability ? `<div>${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
-        `;
-        handDiv.appendChild(cardDiv);
+        if (card === null) {
+            const emptySlot = document.createElement('div');
+            emptySlot.classList.add('empty-slot');
+            handDiv.appendChild(emptySlot);
+        } else {
+            const cardDiv = document.createElement('div');
+            cardDiv.classList.add('card');
+            cardDiv.dataset.index = index;
+            if (selectedCardIndices.includes(index)) cardDiv.classList.add('selected');
+            cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
+            cardDiv.onclick = () => selectCard(index);
+            cardDiv.innerHTML = `
+                <div class="damage">${card.damage}</div>
+                <div class="mana-cost">${card.cost}</div>
+                ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+            `;
+            handDiv.appendChild(cardDiv);
+        }
     });
-    document.getElementById('submit-card').disabled = selectedCardIndices.length === 0 || totalCost > playerCurrentMana;
-    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerCurrentMana}/3`;
+    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+}
+
+// Display boss hand
+function displayBossHand() {
+    const bossHandDiv = document.getElementById('boss-hand');
+    bossHandDiv.innerHTML = '';
+    bossHand.forEach((card, index) => {
+        if (card === null) {
+            const emptySlot = document.createElement('div');
+            emptySlot.classList.add('empty-slot');
+            bossHandDiv.appendChild(emptySlot);
+        } else {
+            const cardDiv = document.createElement('div');
+            cardDiv.classList.add('card');
+            cardDiv.dataset.index = index;
+            if (revealedIndices.includes(index)) {
+                cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
+                cardDiv.innerHTML = `
+                    <div class="damage">${card.damage}</div>
+                    <div class="mana-cost">${card.cost}</div>
+                    ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+                `;
+            } else {
+                cardDiv.style.backgroundImage = `url('images/back.png')`;
+            }
+            cardDiv.onclick = () => {
+                if (isRevealing) {
+                    revealCard(index);
+                    isRevealing = false;
+                }
+            };
+            bossHandDiv.appendChild(cardDiv);
+        }
+    });
+    document.getElementById('boss-health').textContent = `Boss Health: ${bossHealth} | Mana: ${bossMana}`;
 }
 
 // Select card
@@ -88,7 +152,7 @@ function selectCard(index) {
     if (selectedCardIndices.includes(index)) {
         selectedCardIndices = selectedCardIndices.filter(i => i !== index);
     } else {
-        if (selectedCardIndices.length === 0 || playerHand[index].type === playerHand[selectedCardIndices[0]].type) {
+        if (selectedCardIndices.length === 0 || (playerHand[index] && playerHand[selectedCardIndices[0]].type === playerHand[index].type)) {
             selectedCardIndices.push(index);
         } else {
             selectedCardIndices = [index];
@@ -115,134 +179,158 @@ function updateAbilityDesc() {
     }
 }
 
-// Boss card selection logic
+// Reveal card
+function revealCard(index) {
+    if (playerMana < cardRevealCost) {
+        alert('Not enough mana to reveal a card!');
+        return;
+    }
+    playerMana -= cardRevealCost;
+    revealedIndices.push(index);
+    displayBossHand();
+    displayHand(); // Update mana display
+}
+
+// Boss card selection
 function bossSelectCards() {
-    const bossMana = 3;
-    const availableTypes = [...new Set(bossDeck.map(card => card.type))];
+    const availableTypes = [...new Set(bossHand.map(card => card ? card.type : null).filter(Boolean))];
     if (availableTypes.length === 0) return [];
-
-    // Randomly select a type
     const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
-    const typeCards = bossDeck.filter(card => card.type === selectedType);
-
-    // Generate all possible combinations (up to 3 cards for simplicity)
+    const typeCards = bossHand.map((card, idx) => card && card.type === selectedType ? idx : null).filter(idx => idx !== null);
     const combinations = [];
     for (let i = 0; i < typeCards.length; i++) {
-        // Single card
         combinations.push([typeCards[i]]);
         for (let j = i + 1; j < typeCards.length; j++) {
-            // Two cards
             combinations.push([typeCards[i], typeCards[j]]);
             for (let k = j + 1; k < typeCards.length; k++) {
-                // Three cards
                 combinations.push([typeCards[i], typeCards[j], typeCards[k]]);
             }
         }
     }
-
-    // Filter combinations where total cost ≤ bossMana
     const validCombinations = combinations.filter(combo => {
-        const totalCost = combo.reduce((sum, card) => sum + card.cost, 0);
+        const totalCost = combo.reduce((sum, idx) => sum + (bossHand[idx] ? bossHand[idx].cost : 0), 0);
         return totalCost <= bossMana;
     });
-
-    // If no valid combinations, pick a single card with cost ≤ 3
-    if (validCombinations.length === 0) {
-        const affordableCard = typeCards.find(card => card.cost <= bossMana);
-        return affordableCard ? [affordableCard] : [];
-    }
-
-    // Randomly select a valid combination
-    const selectedCombo = validCombinations[Math.floor(Math.random() * validCombinations.length)];
-
-    // Remove selected cards from bossDeck
-    selectedCombo.forEach(card => {
-        const index = bossDeck.findIndex(c => c === card);
-        if (index !== -1) bossDeck.splice(index, 1);
-    });
-
-    return selectedCombo;
+    if (validCombinations.length === 0) return [];
+    return validCombinations[Math.floor(Math.random() * validCombinations.length)];
 }
 
 // Animate card play
-function animatePlay(cards, targetId, callback) {
+function animatePlay(playedCards, playedIndices, sourceHandId, targetId, callback) {
     const targetDiv = document.getElementById(targetId);
-    targetDiv.innerHTML = '';
-    cards.forEach(card => {
-        const cardDiv = document.createElement('div');
-        cardDiv.classList.add('card');
-        cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
-        cardDiv.innerHTML = `
-            <div class="damage">${card.damage}</div>
-            <div class="mana-cost">${card.cost}</div>
-            ${card.ability ? `<div>${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
-        `;
-        targetDiv.appendChild(cardDiv);
+    const handCards = document.querySelectorAll(`#${sourceHandId} .card`);
+    const playAreaRect = targetDiv.getBoundingClientRect();
+    const animatedCards = [];
+
+    playedIndices.forEach((idx, i) => {
+        const card = playedCards[i];
+        if (card && handCards[idx]) {
+            handCards[idx].style.visibility = 'hidden'; // Hide original card during animation
+            const rect = handCards[idx].getBoundingClientRect();
+            const animatedCard = document.createElement('div');
+            animatedCard.classList.add('card');
+            animatedCard.style.position = 'absolute';
+            animatedCard.style.left = `${rect.left}px`;
+            animatedCard.style.top = `${rect.top}px`;
+            animatedCard.style.backgroundImage = `url('images/${card.type}.png')`;
+            animatedCard.innerHTML = `
+                <div class="damage">${card.damage}</div>
+                <div class="mana-cost">${card.cost}</div>
+                ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+            `;
+            document.body.appendChild(animatedCard);
+            animatedCards.push(animatedCard);
+            setTimeout(() => {
+                animatedCard.style.transition = 'all 0.5s ease';
+                animatedCard.style.left = `${playAreaRect.left + (playAreaRect.width / 2 - animatedCard.clientWidth / 2)}px`;
+                animatedCard.style.top = `${playAreaRect.top + (playAreaRect.height / 2 - animatedCard.clientHeight / 2)}px`;
+            }, 10);
+        }
     });
-    setTimeout(callback, 500);
+
+    setTimeout(() => {
+        animatedCards.forEach(card => card.remove());
+        targetDiv.innerHTML = '';
+        playedCards.forEach(card => {
+            const playedCard = document.createElement('div');
+            playedCard.classList.add('card');
+            playedCard.style.backgroundImage = `url('images/${card.type}.png')`;
+            playedCard.innerHTML = `
+                <div class="damage">${card.damage}</div>
+                <div class="mana-cost">${card.cost}</div>
+                ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+            `;
+            targetDiv.appendChild(playedCard);
+        });
+        callback();
+    }, 500);
 }
 
-// Submit turn
-document.getElementById('submit-card').onclick = () => {
-    if (selectedCardIndices.length === 0) return;
-    let totalCost = selectedCardIndices.reduce((sum, idx) => sum + playerHand[idx].cost, 0);
-    if (totalCost > playerCurrentMana) {
-        alert('Not enough mana!');
-        return;
+// Resolve turn
+function resolveTurn() {
+    playerPassed = selectedCardIndices.length === 0;
+    const playerPlayedIndices = playerPassed ? [] : [...selectedCardIndices];
+    const playerPlayedCards = playerPlayedIndices.map(idx => playerHand[idx]);
+
+    const bossPlayedIndices = bossSelectCards();
+    bossPassed = bossPlayedIndices.length === 0;
+    const bossPlayedCards = bossPlayedIndices.map(idx => bossHand[idx]);
+
+    // Deduct mana
+    if (!playerPassed) {
+        const totalCost = playerPlayedCards.reduce((sum, card) => sum + card.cost, 0);
+        playerMana -= totalCost;
+    }
+    if (!bossPassed) {
+        const totalBossCost = bossPlayedCards.reduce((sum, card) => sum + card.cost, 0);
+        bossMana -= totalBossCost;
     }
 
-    playerCurrentMana -= totalCost;
-    const playedCards = selectedCardIndices.sort((a, b) => b - a).map(idx => playerHand[idx]);
-    playerHand = playerHand.filter((_, idx) => !selectedCardIndices.includes(idx));
-    playedCards.forEach(card => playerDiscard.push(card));
-
-    const bossCards = bossSelectCards();
-
     // Apply heals
-    playedCards.forEach(card => {
+    playerPlayedCards.forEach(card => {
         if (card.ability === 'heal') playerHealth = Math.min(playerHealth + 3, 30);
     });
-    bossCards.forEach(card => {
+    bossPlayedCards.forEach(card => {
         if (card.ability === 'heal') bossHealth = Math.min(bossHealth + 3, 30);
     });
 
-    // Calculate raw damage
-    let playerRawDamage = playedCards.reduce((sum, card) => sum + card.damage, 0);
-    let bossRawDamage = bossCards.reduce((sum, card) => sum + card.damage, 0);
-
-    // Apply debuffs
-    const playerDebuffCount = bossCards.filter(card => card.ability === 'debuff').length;
-    const bossDebuffCount = playedCards.filter(card => card.ability === 'debuff').length;
+    // Calculate damage
+    const playerRawDamage = playerPlayedCards.reduce((sum, card) => sum + card.damage, 0);
+    const bossRawDamage = bossPlayedCards.reduce((sum, card) => sum + card.damage, 0);
+    const playerDebuffCount = bossPlayedCards.filter(card => card.ability === 'debuff').length;
+    const bossDebuffCount = playerPlayedCards.filter(card => card.ability === 'debuff').length;
     let playerEffectiveDamage = Math.max(0, playerRawDamage - playerDebuffCount * 2);
     let bossEffectiveDamage = Math.max(0, bossRawDamage - bossDebuffCount * 2);
 
-    // Determine type advantage
+    // Type advantage
     const typeAdvantage = { 'rock': 'scissors', 'scissors': 'paper', 'paper': 'rock' };
-    const playerType = playedCards[0]?.type;
-    const bossType = bossCards[0]?.type;
-    let advantage = 'neutral';
-    if (playerType && bossType) {
-        if (typeAdvantage[playerType] === bossType) advantage = 'player';
-        else if (typeAdvantage[bossType] === playerType) advantage = 'boss';
-    }
-
-    // Calculate damage
+    const playerType = playerPlayedCards.length > 0 ? playerPlayedCards[0].type : null;
+    const bossType = bossPlayedCards.length > 0 ? bossPlayedCards[0].type : null;
     let damageDealt = 0;
     let dealer = '';
-    if (advantage === 'player') {
+
+    if (playerType && bossType) {
+        if (typeAdvantage[playerType] === bossType) {
+            damageDealt = playerEffectiveDamage;
+            dealer = 'player';
+        } else if (typeAdvantage[bossType] === playerType) {
+            damageDealt = bossEffectiveDamage;
+            dealer = 'boss';
+        } else {
+            damageDealt = Math.abs(playerEffectiveDamage - bossEffectiveDamage);
+            dealer = playerEffectiveDamage > bossEffectiveDamage ? 'player' : bossEffectiveDamage > playerEffectiveDamage ? 'boss' : '';
+        }
+    } else if (playerType) {
         damageDealt = playerEffectiveDamage;
         dealer = 'player';
-    } else if (advantage === 'boss') {
+    } else if (bossType) {
         damageDealt = bossEffectiveDamage;
         dealer = 'boss';
-    } else {
-        damageDealt = Math.abs(playerEffectiveDamage - bossEffectiveDamage);
-        dealer = playerEffectiveDamage > bossEffectiveDamage ? 'player' : bossEffectiveDamage > playerEffectiveDamage ? 'boss' : '';
     }
 
     // Apply shields
-    const playerShieldCount = playedCards.filter(card => card.ability === 'shield').length;
-    const bossShieldCount = bossCards.filter(card => card.ability === 'shield').length;
+    const playerShieldCount = playerPlayedCards.filter(card => card.ability === 'shield').length;
+    const bossShieldCount = bossPlayedCards.filter(card => card.ability === 'shield').length;
     if (dealer === 'player' && damageDealt > 0) {
         damageDealt = Math.max(0, damageDealt - bossShieldCount * 3);
         bossHealth -= damageDealt;
@@ -252,66 +340,117 @@ document.getElementById('submit-card').onclick = () => {
     }
 
     // Update UI
-    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerCurrentMana}/3`;
-    document.getElementById('boss-health').textContent = `Boss Health: ${bossHealth}`;
-
+    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+    document.getElementById('boss-health').textContent = `Boss Health: ${bossHealth} | Mana: ${bossMana}`;
     let resultText = `Player Damage: ${playerEffectiveDamage} (Raw: ${playerRawDamage})\n`;
     resultText += `Boss Damage: ${bossEffectiveDamage} (Raw: ${bossRawDamage})\n`;
-    if (advantage === 'player') resultText += `Player has type advantage! Deals ${damageDealt} damage to boss.`;
-    else if (advantage === 'boss') resultText += `Boss has type advantage! Deals ${damageDealt} damage to player.`;
-    else if (damageDealt > 0) resultText += `${dealer.charAt(0).toUpperCase() + dealer.slice(1)} deals ${damageDealt} damage to ${dealer === 'player' ? 'boss' : 'player'}.`;
-    else resultText += 'Tie! No damage dealt.';
+    if (dealer === 'player' && damageDealt > 0) resultText += `Player deals ${damageDealt} damage to boss.`;
+    else if (dealer === 'boss' && damageDealt > 0) resultText += `Boss deals ${damageDealt} damage to player.`;
+    else resultText += 'No damage dealt.';
     document.getElementById('result').textContent = resultText;
 
-    animatePlay(playedCards, 'player-card', () => {
-        animatePlay(bossCards, 'boss-card', () => {
-            if (playerHealth <= 0 || bossHealth <= 0) {
-                setTimeout(() => {
-                    alert(playerHealth <= 0 ? 'Boss wins!' : 'Player wins!');
-                    resetGame();
-                }, 1000);
-            } else {
-                document.getElementById('next-round').style.display = 'block';
-                document.getElementById('submit-card').disabled = true;
-            }
+    // Animate
+    animatePlay(playerPlayedCards, playerPlayedIndices, 'hand', 'player-card', () => {
+        animatePlay(bossPlayedCards, bossPlayedIndices, 'boss-hand', 'boss-card', () => {
+            // After both animations, set played slots to null
+            playerPlayedIndices.forEach(idx => playerHand[idx] = null);
+            bossPlayedIndices.forEach(idx => bossHand[idx] = null);
+            displayHand();
+            displayBossHand();
+            document.getElementById('play-cards').disabled = true;
+            document.getElementById('end-turn').disabled = true;
+            document.getElementById('reveal-card').disabled = true;
+            document.getElementById('next-round').disabled = false;
         });
     });
-};
 
-// Next Round
-document.getElementById('next-round').onclick = () => {
-    document.getElementById('next-round').style.display = 'none';
-    document.getElementById('submit-card').disabled = false;
-    startTurn();
-};
+    // Set reset flags
+    playerManaReset = playerMana === 0;
+    bossManaReset = bossMana === 0;
+
+    isFirstTurn = false;
+}
 
 // Start turn
 function startTurn() {
-    playerCurrentMana = playerMaxMana;
-    while (playerHand.length < 4) drawCard();
+    if (!isFirstTurn) {
+        if (playerManaReset) playerMana = 3;
+        else playerMana = Math.min(playerMana + 3, 15);
+        if (bossManaReset) bossMana = 3;
+        else bossMana = Math.min(bossMana + 3, 15);
+    }
+    playerHand = playerHand.map(card => card === null ? drawCard() : card);
+    bossHand = bossHand.map(card => card === null ? drawBossCard() : card);
     selectedCardIndices = [];
+    revealedIndices = [];
+    playerPassed = false;
+    bossPassed = false;
     document.getElementById('ability-desc').textContent = 'Select a card to see its ability.';
     document.getElementById('player-card').innerHTML = '?';
     document.getElementById('boss-card').innerHTML = '?';
     document.getElementById('result').textContent = '';
-    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerCurrentMana}/3`;
+    document.getElementById('play-cards').disabled = false;
+    document.getElementById('end-turn').disabled = false;
+    document.getElementById('reveal-card').disabled = false;
+    document.getElementById('next-round').disabled = true;
     displayHand();
+    displayBossHand();
 }
 
 // Reset game
 function resetGame() {
     playerDeck = shuffle([...baseDeck]);
-    playerHand = [];
+    playerHand = Array(4).fill(null);
     playerDiscard = [];
     bossDeck = shuffle([...baseDeck]);
+    bossHand = Array(4).fill(null);
+    bossDiscard = [];
     playerHealth = 30;
     bossHealth = 30;
-    playerMaxMana = 3;
-    playerCurrentMana = 3;
+    playerMana = 3;
+    bossMana = 3;
+    playerManaReset = false;
+    bossManaReset = false;
     selectedCardIndices = [];
-    while (playerHand.length < 4) drawCard();
+    revealedIndices = [];
+    isFirstTurn = true;
+    for (let i = 0; i < 4; i++) {
+        playerHand[i] = drawCard();
+        bossHand[i] = drawBossCard();
+    }
     startTurn();
 }
+
+// Button handlers
+document.getElementById('play-cards').onclick = () => {
+    if (selectedCardIndices.length === 0) {
+        alert('Select cards to play!');
+        return;
+    }
+    const totalCost = selectedCardIndices.reduce((sum, idx) => sum + (playerHand[idx] ? playerHand[idx].cost : 0), 0);
+    if (totalCost > playerMana) {
+        alert('Not enough mana!');
+        return;
+    }
+    resolveTurn();
+};
+
+document.getElementById('end-turn').onclick = () => {
+    selectedCardIndices = [];
+    resolveTurn();
+};
+
+document.getElementById('reveal-card').onclick = () => {
+    if (playerMana < cardRevealCost) {
+        alert('Not enough mana to reveal a card!');
+        return;
+    }
+    isRevealing = true;
+};
+
+document.getElementById('next-round').onclick = () => {
+    startTurn();
+};
 
 // Initialize
 startTurn();
