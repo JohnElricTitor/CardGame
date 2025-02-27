@@ -8,13 +8,62 @@
 </head>
 <body>
     <div class="game-container">
-        <h1>Card Battle Game</h1>
+        <!-- Tutorial Button -->
+        <button id="tutorial-button">Tutorial</button>
+
+        <!-- Tutorial Panel (hidden by default) -->
+        <div id="tutorial-panel" style="display: none;">
+            <div id="tutorial-content">
+                <h2>Welcome to the Card Battle Game!</h2>
+                <p>This tutorial will teach you the basics, step by step. Your goal is to reduce your <strong>opponent’s</strong> health to zero before they do the same to you. Let’s dive in!</p>
+                
+                <h3>What Are Cards?</h3>
+                <p>Cards are your tools to fight your opponent. Each card in your hand has:</p>
+                <ul>
+                    <li><strong>Type</strong>: Rock, Paper, or Scissors. It works like the classic game:
+                        <ul>
+                            <li>Rock beats Scissors.</li>
+                            <li>Scissors beat Paper.</li>
+                            <li>Paper beats Rock.</li>
+                        </ul>
+                    </li>
+                    <li><strong>Damage</strong>: The number at the <strong>top right</strong> of the card. This shows how much damage it deals if it wins the matchup.</li>
+                    <li><strong>Mana Cost</strong>: The number at the <strong>bottom left</strong>. This is how much mana you need to play it.</li>
+                    <li><strong>Abilities</strong>: Some cards have extra effects like Heal, Debuff, or Shield.</li>
+                </ul>
+
+                <h3>How to Use Your Cards</h3>
+                <p>You have two options each turn:</p>
+                <ul>
+                    <li><strong>Playing a Card</strong>: Drag a card to the play slot to use it. This costs mana equal to the card’s mana cost.</li>
+                    <li><strong>Burning a Card</strong>: Drag a card to the burn slot to discard it and gain mana equal to its mana cost.</li>
+                </ul>
+                <p><strong>Important</strong>: Once you drag a card to the play slot, it’s locked in—you can’t undo it.</p>
+
+                <h3>Managing Mana</h3>
+                <p>Mana is your energy for playing cards and making moves:</p>
+                <ul>
+                    <li>You start with 3 mana and gain 3 more each turn (unless you ended with 0 mana, then it resets to 3).</li>
+                    <li>Spend mana to play cards or reveal your opponent’s cards.</li>
+                    <li>Burn cards to gain extra mana.</li>
+                </ul>
+
+                <h3>Tips for Beginners</h3>
+                <p>The goal is to use your mana wisely to see as much of your <strong>opponent’s hand</strong> as possible, allowing you to counter with the best possible combination of cards.</p>
+
+                <p>That’s it! You’re ready to play. Good luck outsmarting your opponent!</p>
+                
+                <button id="close-tutorial">Close</button>
+            </div>
+        </div>
+
+        <!-- Existing game elements -->
         <div id="deck">Deck: <span id="deck-count">30</span></div>
-        <div id="boss-health">Boss Health: 30 | Mana: 3</div>
+        <div id="boss-health">Opponent Health: 30 | Mana: 3</div>
         <div id="boss-hand"></div>
         <div class="battle-area">
             <div id="boss-card"></div>
-            <div id="burn-slot">Burn Slot</div> <!-- Moved to center -->
+            <div id="burn-slot">Burn Slot</div>
             <div id="player-card"></div>
         </div>
         <div id="hand"></div>
