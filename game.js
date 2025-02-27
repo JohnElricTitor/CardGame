@@ -15,11 +15,8 @@ function generateDeck() {
     const deck = [];
     types.forEach(type => {
         for (let damage = 1; damage <= 10; damage++) {
-            let cost;
-            if (damage <= 3) cost = 1;
-            else if (damage <= 6) cost = 2;
-            else cost = 3; // 7-10 cost 3 mana
-            const hasAbility = Math.random() < 0.2; // 20% chance
+            let cost = damage <= 3 ? 1 : damage <= 6 ? 2 : 3;
+            const hasAbility = Math.random() < 0.2;
             const ability = hasAbility ? abilities[Math.floor(Math.random() * abilities.length)] : null;
             deck.push(new Card(type, damage, cost, ability));
         }
@@ -67,8 +64,7 @@ while (playerHand.length < 4) drawCard();
 function displayHand() {
     const handDiv = document.getElementById('hand');
     handDiv.innerHTML = '';
-    let totalCost = 0;
-    selectedCardIndices.forEach(idx => totalCost += playerHand[idx].cost);
+    let totalCost = selectedCardIndices.reduce((sum, idx) => sum + playerHand[idx].cost, 0);
     playerHand.forEach((card, index) => {
         const cardDiv = document.createElement('div');
         cardDiv.classList.add('card');
@@ -76,22 +72,11 @@ function displayHand() {
         cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
         cardDiv.onclick = () => selectCard(index);
 
-        const damageDiv = document.createElement('div');
-        damageDiv.classList.add('damage');
-        damageDiv.textContent = card.damage;
-        cardDiv.appendChild(damageDiv);
-
-        const costDiv = document.createElement('div');
-        costDiv.classList.add('mana-cost');
-        costDiv.textContent = card.cost;
-        cardDiv.appendChild(costDiv);
-
-        if (card.ability) {
-            const abilityDiv = document.createElement('div');
-            abilityDiv.textContent = card.ability.charAt(0).toUpperCase() + card.ability.slice(1);
-            cardDiv.appendChild(abilityDiv);
-        }
-
+        cardDiv.innerHTML = `
+            <div class="damage">${card.damage}</div>
+            <div class="mana-cost">${card.cost}</div>
+            ${card.ability ? `<div>${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+        `;
         handDiv.appendChild(cardDiv);
     });
     document.getElementById('submit-card').disabled = selectedCardIndices.length === 0 || totalCost > playerCurrentMana;
@@ -106,7 +91,7 @@ function selectCard(index) {
         if (selectedCardIndices.length === 0 || playerHand[index].type === playerHand[selectedCardIndices[0]].type) {
             selectedCardIndices.push(index);
         } else {
-            selectedCardIndices = [index]; // Replace selection if type differs
+            selectedCardIndices = [index];
         }
     }
     displayHand();
@@ -130,22 +115,74 @@ function updateAbilityDesc() {
     }
 }
 
-// Animate card play for multiple cards
+// Boss card selection logic
+function bossSelectCards() {
+    const bossMana = 3;
+    const availableTypes = [...new Set(bossDeck.map(card => card.type))];
+    if (availableTypes.length === 0) return [];
+
+    // Randomly select a type
+    const selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+    const typeCards = bossDeck.filter(card => card.type === selectedType);
+
+    // Generate all possible combinations (up to 3 cards for simplicity)
+    const combinations = [];
+    for (let i = 0; i < typeCards.length; i++) {
+        // Single card
+        combinations.push([typeCards[i]]);
+        for (let j = i + 1; j < typeCards.length; j++) {
+            // Two cards
+            combinations.push([typeCards[i], typeCards[j]]);
+            for (let k = j + 1; k < typeCards.length; k++) {
+                // Three cards
+                combinations.push([typeCards[i], typeCards[j], typeCards[k]]);
+            }
+        }
+    }
+
+    // Filter combinations where total cost ≤ bossMana
+    const validCombinations = combinations.filter(combo => {
+        const totalCost = combo.reduce((sum, card) => sum + card.cost, 0);
+        return totalCost <= bossMana;
+    });
+
+    // If no valid combinations, pick a single card with cost ≤ 3
+    if (validCombinations.length === 0) {
+        const affordableCard = typeCards.find(card => card.cost <= bossMana);
+        return affordableCard ? [affordableCard] : [];
+    }
+
+    // Randomly select a valid combination
+    const selectedCombo = validCombinations[Math.floor(Math.random() * validCombinations.length)];
+
+    // Remove selected cards from bossDeck
+    selectedCombo.forEach(card => {
+        const index = bossDeck.findIndex(c => c === card);
+        if (index !== -1) bossDeck.splice(index, 1);
+    });
+
+    return selectedCombo;
+}
+
+// Animate card play
 function animatePlay(cards, targetId, callback) {
     const targetDiv = document.getElementById(targetId);
-    targetDiv.innerHTML = ''; // Clear previous cards
+    targetDiv.innerHTML = '';
     cards.forEach(card => {
         const cardDiv = document.createElement('div');
         cardDiv.classList.add('card');
         cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
-        cardDiv.innerHTML = `<div class="damage">${card.damage}</div><div class="mana-cost">${card.cost}</div>`;
-        if (card.ability) cardDiv.innerHTML += `<div>${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>`;
+        cardDiv.innerHTML = `
+            <div class="damage">${card.damage}</div>
+            <div class="mana-cost">${card.cost}</div>
+            ${card.ability ? `<div>${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+        `;
         targetDiv.appendChild(cardDiv);
     });
     setTimeout(callback, 500);
 }
 
-// Submit turn with combined damage
+// Submit turn
 document.getElementById('submit-card').onclick = () => {
     if (selectedCardIndices.length === 0) return;
     let totalCost = selectedCardIndices.reduce((sum, idx) => sum + playerHand[idx].cost, 0);
@@ -154,19 +191,14 @@ document.getElementById('submit-card').onclick = () => {
         return;
     }
 
-    // Update mana and collect played cards
     playerCurrentMana -= totalCost;
     const playedCards = selectedCardIndices.sort((a, b) => b - a).map(idx => playerHand[idx]);
     playerHand = playerHand.filter((_, idx) => !selectedCardIndices.includes(idx));
     playedCards.forEach(card => playerDiscard.push(card));
 
-    // Boss plays the same number of cards
-    const bossCards = [];
-    for (let i = 0; i < playedCards.length; i++) {
-        bossCards.push(bossDeck[Math.floor(Math.random() * bossDeck.length)]);
-    }
+    const bossCards = bossSelectCards();
 
-    // Step 1: Apply 'heal' abilities
+    // Apply heals
     playedCards.forEach(card => {
         if (card.ability === 'heal') playerHealth = Math.min(playerHealth + 3, 30);
     });
@@ -174,27 +206,27 @@ document.getElementById('submit-card').onclick = () => {
         if (card.ability === 'heal') bossHealth = Math.min(bossHealth + 3, 30);
     });
 
-    // Step 2: Calculate raw total damage
+    // Calculate raw damage
     let playerRawDamage = playedCards.reduce((sum, card) => sum + card.damage, 0);
     let bossRawDamage = bossCards.reduce((sum, card) => sum + card.damage, 0);
 
-    // Step 3: Apply 'debuff' abilities
+    // Apply debuffs
     const playerDebuffCount = bossCards.filter(card => card.ability === 'debuff').length;
     const bossDebuffCount = playedCards.filter(card => card.ability === 'debuff').length;
     let playerEffectiveDamage = Math.max(0, playerRawDamage - playerDebuffCount * 2);
     let bossEffectiveDamage = Math.max(0, bossRawDamage - bossDebuffCount * 2);
 
-    // Step 4: Determine type advantage
+    // Determine type advantage
     const typeAdvantage = { 'rock': 'scissors', 'scissors': 'paper', 'paper': 'rock' };
-    const playerType = playedCards[0].type; // All player cards are the same type
-    let wins = 0, losses = 0;
-    bossCards.forEach(bossCard => {
-        if (typeAdvantage[playerType] === bossCard.type) wins++;
-        else if (typeAdvantage[bossCard.type] === playerType) losses++;
-    });
-    let advantage = wins > losses ? 'player' : losses > wins ? 'boss' : 'neutral';
+    const playerType = playedCards[0]?.type;
+    const bossType = bossCards[0]?.type;
+    let advantage = 'neutral';
+    if (playerType && bossType) {
+        if (typeAdvantage[playerType] === bossType) advantage = 'player';
+        else if (typeAdvantage[bossType] === playerType) advantage = 'boss';
+    }
 
-    // Step 5: Calculate damage based on advantage
+    // Calculate damage
     let damageDealt = 0;
     let dealer = '';
     if (advantage === 'player') {
@@ -208,7 +240,7 @@ document.getElementById('submit-card').onclick = () => {
         dealer = playerEffectiveDamage > bossEffectiveDamage ? 'player' : bossEffectiveDamage > playerEffectiveDamage ? 'boss' : '';
     }
 
-    // Step 6: Apply 'shield' abilities
+    // Apply shields
     const playerShieldCount = playedCards.filter(card => card.ability === 'shield').length;
     const bossShieldCount = bossCards.filter(card => card.ability === 'shield').length;
     if (dealer === 'player' && damageDealt > 0) {
@@ -223,21 +255,14 @@ document.getElementById('submit-card').onclick = () => {
     document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerCurrentMana}/3`;
     document.getElementById('boss-health').textContent = `Boss Health: ${bossHealth}`;
 
-    // Display result
     let resultText = `Player Damage: ${playerEffectiveDamage} (Raw: ${playerRawDamage})\n`;
     resultText += `Boss Damage: ${bossEffectiveDamage} (Raw: ${bossRawDamage})\n`;
-    if (advantage === 'player') {
-        resultText += `Player has type advantage! Deals ${damageDealt} damage to boss.`;
-    } else if (advantage === 'boss') {
-        resultText += `Boss has type advantage! Deals ${damageDealt} damage to player.`;
-    } else if (damageDealt > 0) {
-        resultText += `${dealer.charAt(0).toUpperCase() + dealer.slice(1)} deals ${damageDealt} damage to ${dealer === 'player' ? 'boss' : 'player'}.`;
-    } else {
-        resultText += 'Tie! No damage dealt.';
-    }
+    if (advantage === 'player') resultText += `Player has type advantage! Deals ${damageDealt} damage to boss.`;
+    else if (advantage === 'boss') resultText += `Boss has type advantage! Deals ${damageDealt} damage to player.`;
+    else if (damageDealt > 0) resultText += `${dealer.charAt(0).toUpperCase() + dealer.slice(1)} deals ${damageDealt} damage to ${dealer === 'player' ? 'boss' : 'player'}.`;
+    else resultText += 'Tie! No damage dealt.';
     document.getElementById('result').textContent = resultText;
 
-    // Animate cards
     animatePlay(playedCards, 'player-card', () => {
         animatePlay(bossCards, 'boss-card', () => {
             if (playerHealth <= 0 || bossHealth <= 0) {
@@ -253,7 +278,7 @@ document.getElementById('submit-card').onclick = () => {
     });
 };
 
-// Next Round button handler
+// Next Round
 document.getElementById('next-round').onclick = () => {
     document.getElementById('next-round').style.display = 'none';
     document.getElementById('submit-card').disabled = false;
