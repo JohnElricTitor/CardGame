@@ -1,93 +1,36 @@
-.game-container {
-    text-align: center;
-    padding: 20px;
-}
-
-.card {
-    display: inline-block;
-    width: 100px;
-    height: 150px;
-    margin: 5px;
-    border: 1px solid #000;
-    cursor: pointer;
-    position: relative;
-    background-size: cover;
-    transition: all 0.5s ease;
-}
-
-.empty-slot {
-    width: 100px;
-    height: 150px;
-    margin: 5px;
-    border: 1px dashed #ccc;
-}
-
-#player-card, #boss-card, #burn-slot {
-    min-height: 160px;
-    border: 2px dashed #999;
-    margin: 10px;
-    padding: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#burn-slot {
-    border-color: red; /* Distinct styling for burn slot */
-    background-color: #ffe6e6;
-}
-
-.damage {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 2px 5px;
-    border-radius: 3px;
-}
-
-.mana-cost {
-    position: absolute;
-    bottom: 5px;
-    left: 5px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 2px 5px;
-    border-radius: 3px;
-}
-
-.ability {
-    position: absolute;
-    bottom: 25px;
-    left: 5px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 2px 5px;
-    border-radius: 3px;
-}
-
-.battle-area {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-}
-
-#boss-hand, #hand {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 10px;
-}
-
-.controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.control-row {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Battle Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>Card Battle Game</h1>
+        <div id="deck">Deck: <span id="deck-count">30</span></div>
+        <div id="boss-health">Boss Health: 30 | Mana: 3</div>
+        <div id="boss-hand"></div>
+        <div class="battle-area">
+            <div id="boss-card"></div>
+            <div id="burn-slot">Burn Slot</div> <!-- Moved to center -->
+            <div id="player-card"></div>
+        </div>
+        <div id="hand"></div>
+        <div id="player-health">Player Health: 30 | Mana: 3</div>
+        <div id="ability-desc">Drag cards to play area or burn slot and end turn when ready.</div>
+        <div class="controls">
+            <div class="control-row">
+                <button id="end-turn">End Turn</button>
+            </div>
+            <div class="control-row">
+                <button id="reveal-card">Reveal Card</button>
+                <button id="next-round" disabled>Next Round</button>
+            </div>
+        </div>
+        <div id="result"></div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
