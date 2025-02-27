@@ -48,15 +48,15 @@ let bossMana = 3;
 let playerManaReset = false;
 let bossManaReset = false;
 let isFirstTurn = true;
-let playerGoesFirst = true; // Track who goes first
+let isPlayerTurn = true;
 let playedCards = []; // Player's played cards
 let bossPlayedCards = []; // Boss's played cards
 
-// Type advantage for damage calculation
-const typeAdvantage = {
-    'rock': 'scissors',
-    'paper': 'rock',
-    'scissors': 'paper'
+// Define ability descriptions for the info box
+const abilityDescriptions = {
+    heal: 'Restore 3 health when played.',
+    debuff: "Reduce opponent's damage by 2.",
+    shield: 'Block 3 damage when played.'
 };
 
 // Draw card for player
@@ -89,7 +89,15 @@ for (let i = 0; i < 4; i++) {
     bossHand[i] = drawBossCard();
 }
 
-// Display player hand
+// Function to create the info box
+function createInfoBox(ability) {
+    const infoBox = document.createElement('div');
+    infoBox.classList.add('info-box');
+    infoBox.textContent = abilityDescriptions[ability] || 'No ability description available.';
+    return infoBox;
+}
+
+// Display player hand with hover functionality
 function displayHand() {
     const handDiv = document.getElementById('hand');
     handDiv.innerHTML = '';
@@ -101,6 +109,8 @@ function displayHand() {
             cardDiv.draggable = true;
             cardDiv.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', index);
+                const infoBox = document.querySelector('.info-box');
+                if (infoBox) infoBox.remove();
             });
             cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
             cardDiv.innerHTML = `
@@ -108,6 +118,19 @@ function displayHand() {
                 <div class="mana-cost">${card.cost}</div>
                 ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
             `;
+            if (card.ability) {
+                cardDiv.addEventListener('mouseenter', (e) => {
+                    const infoBox = createInfoBox(card.ability);
+                    infoBox.style.position = 'absolute';
+                    infoBox.style.left = `${e.pageX + 10}px`;
+                    infoBox.style.top = `${e.pageY + 10}px`;
+                    document.body.appendChild(infoBox);
+                });
+                cardDiv.addEventListener('mouseleave', () => {
+                    const infoBox = document.querySelector('.info-box');
+                    if (infoBox) infoBox.remove();
+                });
+            }
             handDiv.appendChild(cardDiv);
         } else {
             const emptySlot = document.createElement('div');
@@ -122,10 +145,11 @@ function displayHand() {
 function displayBossHand() {
     const bossHandDiv = document.getElementById('boss-hand');
     bossHandDiv.innerHTML = '';
-    bossHand.forEach((card) => {
+    bossHand.forEach((card, index) => {
         if (card) {
             const cardDiv = document.createElement('div');
             cardDiv.classList.add('card');
+            cardDiv.dataset.index = index;
             cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
             cardDiv.innerHTML = `
                 <div class="damage">${card.damage}</div>
@@ -159,23 +183,6 @@ function displayPlayedCards() {
     });
 }
 
-// Display boss played cards
-function displayBossPlayedCards() {
-    const bossCardDiv = document.getElementById('boss-card');
-    bossCardDiv.innerHTML = '';
-    bossPlayedCards.forEach(card => {
-        const cardDiv = document.createElement('div');
-        cardDiv.classList.add('card');
-        cardDiv.style.backgroundImage = `url('images/${card.type}.png')`;
-        cardDiv.innerHTML = `
-            <div class="damage">${card.damage}</div>
-            <div class="mana-cost">${card.cost}</div>
-            ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
-        `;
-        bossCardDiv.appendChild(cardDiv);
-    });
-}
-
 // Boss card selection (ensures same type)
 function bossSelectCards() {
     const availableTypes = [...new Set(bossHand.map(card => card ? card.type : null).filter(Boolean))];
@@ -196,78 +203,153 @@ function bossSelectCards() {
         const totalCost = combo.reduce((sum, idx) => sum + (bossHand[idx] ? bossHand[idx].cost : 0), 0);
         return totalCost <= bossMana;
     });
-    if (validCombinations.length === 0) return [];
-    return validCombinations[Math.floor(Math.random() * validCombinations.length)];
+    return validCombinations.length > 0 ? validCombinations[Math.floor(Math.random() * validCombinations.length)] : [];
 }
 
-// Calculate damage
-function calculateDamage(attackerCards, defenderCards) {
-    let damage = 0;
-    if (attackerCards.length > 0) {
-        const attackerType = attackerCards[0].type;
-        const defenderType = defenderCards.length > 0 ? defenderCards[0].type : null;
-        if (defenderType && typeAdvantage[attackerType] === defenderType) {
-            damage = attackerCards.reduce((sum, card) => sum + card.damage, 0);
+// Animate boss cards
+function animateBossPlay(indices, targetId, callback) {
+    const targetDiv = document.getElementById(targetId);
+    const handCards = document.querySelectorAll('#boss-hand .card');
+    const playAreaRect = targetDiv.getBoundingClientRect();
+    const animatedCards = [];
+
+    indices.forEach((idx, i) => {
+        const card = bossHand[idx];
+        if (card && handCards[idx]) {
+            handCards[idx].style.visibility = 'hidden';
+            const rect = handCards[idx].getBoundingClientRect();
+            const animatedCard = document.createElement('div');
+            animatedCard.classList.add('card');
+            animatedCard.style.position = 'absolute';
+            animatedCard.style.left = `${rect.left}px`;
+            animatedCard.style.top = `${rect.top}px`;
+            animatedCard.style.backgroundImage = `url('images/${card.type}.png')`;
+            animatedCard.innerHTML = `
+                <div class="damage">${card.damage}</div>
+                <div class="mana-cost">${card.cost}</div>
+                ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
+            `;
+            document.body.appendChild(animatedCard);
+            animatedCards.push(animatedCard);
+            setTimeout(() => {
+                animatedCard.style.transition = 'all 0.5s ease';
+                animatedCard.style.left = `${playAreaRect.left + (playAreaRect.width / 2 - animatedCard.clientWidth / 2)}px`;
+                animatedCard.style.top = `${playAreaRect.top + (playAreaRect.height / 2 - animatedCard.clientHeight / 2)}px`;
+            }, 10);
         }
-    }
-    return damage;
+    });
+
+    setTimeout(() => {
+        animatedCards.forEach(card => card.remove());
+        targetDiv.innerHTML = '';
+        indices.forEach(idx => {
+            const card = bossPlayedCards.find(c => c === bossHand[idx]);
+            if (card) {
+                const playedCard = document.createElement('div');
+                playedCard.classList.add('card');
+                playedCard.style.backgroundImage = `url('images/${card.type}.png')`;
+                playedCard.innerHTML = `
+                    <div class="damage">${card.damage}</div>
+                    <div class="mana-cost">${card.cost}</div>
+                    ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}`;
+                targetDiv.appendChild(playedCard);
+            }
+        });
+        callback();
+    }, 500);
 }
 
 // Resolve turn
 function resolveTurn() {
-    // Boss selects cards when player ends turn
-    const bossCardIndices = bossSelectCards();
-    bossPlayedCards = bossCardIndices.map(idx => bossHand[idx]);
-    const totalBossCost = bossPlayedCards.reduce((sum, card) => sum + card.cost, 0);
-    bossMana -= totalBossCost;
-    bossCardIndices.forEach(idx => bossHand[idx] = null);
+    // Boss plays cards
+    const bossSelectedIndices = bossSelectCards();
+    bossPlayedCards = bossSelectedIndices.map(idx => bossHand[idx]);
+    const bossTotalCost = bossPlayedCards.reduce((sum, card) => sum + card.cost, 0);
+    bossMana -= bossTotalCost;
 
-    let playerDamage = 0;
-    let bossDamage = 0;
+    // Apply heals
+    playedCards.forEach(card => {
+        if (card.ability === 'heal') playerHealth = Math.min(playerHealth + 3, 30);
+    });
+    bossPlayedCards.forEach(card => {
+        if (card.ability === 'heal') bossHealth = Math.min(bossHealth + 3, 30);
+    });
 
-    // Resolve based on who goes first
-    if (playerGoesFirst) {
-        playerDamage = calculateDamage(playedCards, bossPlayedCards);
-        bossDamage = calculateDamage(bossPlayedCards, playedCards);
-    } else {
-        bossDamage = calculateDamage(bossPlayedCards, playedCards);
-        playerDamage = calculateDamage(playedCards, bossPlayedCards);
+    // Calculate damage
+    const playerRawDamage = playedCards.reduce((sum, card) => sum + card.damage, 0);
+    const bossRawDamage = bossPlayedCards.reduce((sum, card) => sum + card.damage, 0);
+    const playerDebuffCount = bossPlayedCards.filter(card => card.ability === 'debuff').length;
+    const bossDebuffCount = playedCards.filter(card => card.ability === 'debuff').length;
+    let playerEffectiveDamage = Math.max(0, playerRawDamage - playerDebuffCount * 2);
+    let bossEffectiveDamage = Math.max(0, bossRawDamage - bossDebuffCount * 2);
+
+    // Type advantage
+    const typeAdvantage = { 'rock': 'scissors', 'scissors': 'paper', 'paper': 'rock' };
+    const playerType = playedCards.length > 0 ? playedCards[0].type : null;
+    const bossType = bossPlayedCards.length > 0 ? bossPlayedCards[0].type : null;
+    let damageDealt = 0;
+    let dealer = '';
+
+    if (playerType && bossType) {
+        if (typeAdvantage[playerType] === bossType) {
+            damageDealt = playerEffectiveDamage;
+            dealer = 'player';
+        } else if (typeAdvantage[bossType] === playerType) {
+            damageDealt = bossEffectiveDamage;
+            dealer = 'boss';
+        } else {
+            damageDealt = Math.abs(playerEffectiveDamage - bossEffectiveDamage);
+            dealer = playerEffectiveDamage > bossEffectiveDamage ? 'player' : bossEffectiveDamage > playerEffectiveDamage ? 'boss' : '';
+        }
+    } else if (playerType) {
+        damageDealt = playerEffectiveDamage;
+        dealer = 'player';
+    } else if (bossType) {
+        damageDealt = bossEffectiveDamage;
+        dealer = 'boss';
     }
 
-    // Apply damage
-    bossHealth -= playerDamage;
-    playerHealth -= bossDamage;
-
-    // Determine winner and set next round's turn order
-    if (playerDamage > bossDamage) {
-        playerGoesFirst = true;
-    } else if (bossDamage > playerDamage) {
-        playerGoesFirst = false;
-    } // Tie: maintain current order
-
-    // Display boss played cards
-    displayBossPlayedCards();
+    // Apply shields
+    const playerShieldCount = playedCards.filter(card => card.ability === 'shield').length;
+    const bossShieldCount = bossPlayedCards.filter(card => card.ability === 'shield').length;
+    if (dealer === 'player' && damageDealt > 0) {
+        damageDealt = Math.max(0, damageDealt - bossShieldCount * 3);
+        bossHealth -= damageDealt;
+    } else if (dealer === 'boss' && damageDealt > 0) {
+        damageDealt = Math.max(0, damageDealt - playerShieldCount * 3);
+        playerHealth -= damageDealt;
+    }
 
     // Update UI
-    displayHand();
-    displayBossHand();
-    document.getElementById('result').textContent = `Player dealt ${playerDamage} damage | Boss dealt ${bossDamage} damage`;
+    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+    document.getElementById('boss-health').textContent = `Opponent Health: ${bossHealth} | Mana: ${bossMana}`;
+    let resultText = `Player Damage: ${playerEffectiveDamage} (Raw: ${playerRawDamage})\n`;
+    resultText += `Opponent Damage: ${bossEffectiveDamage} (Raw: ${bossRawDamage})\n`;
+    if (dealer === 'player' && damageDealt > 0) resultText += `Player deals ${damageDealt} damage to opponent.`;
+    else if (dealer === 'boss' && damageDealt > 0) resultText += `Opponent deals ${damageDealt} damage to player.`;
+    else resultText += 'No damage dealt.';
+    document.getElementById('result').textContent = resultText;
 
-    // Check for win condition
-    if (playerHealth <= 0) {
-        alert('Opponent wins!');
-        resetGame();
-        return;
-    } else if (bossHealth <= 0) {
-        alert('Player wins!');
-        resetGame();
-        return;
-    }
+    // Animate boss cards and check win condition
+    animateBossPlay(bossSelectedIndices, 'boss-card', () => {
+        bossSelectedIndices.forEach(idx => bossHand[idx] = null);
+        displayBossHand();
+        document.getElementById('end-turn').disabled = true;
+        document.getElementById('next-round').disabled = false;
+        isPlayerTurn = false;
 
-    // Prepare for next round
+        if (playerHealth <= 0) {
+            alert('Opponent wins!');
+            resetGame();
+        } else if (bossHealth <= 0) {
+            alert('Player wins!');
+            resetGame();
+        }
+    });
+
+    playerManaReset = playerMana === 0;
+    bossManaReset = bossMana === 0;
     isFirstTurn = false;
-    document.getElementById('end-turn').disabled = true;
-    document.getElementById('next-round').disabled = false;
 }
 
 // Start turn
@@ -278,29 +360,14 @@ function startTurn() {
         if (bossManaReset) bossMana = 3;
         else bossMana = Math.min(bossMana + 3, 15);
     }
-
-    // Refill hands
     playerHand = playerHand.map(card => card === null ? drawCard() : card);
     bossHand = bossHand.map(card => card === null ? drawBossCard() : card);
-
-    // Reset played cards
     playedCards = [];
     bossPlayedCards = [];
-
-    // If boss goes first, they play immediately
-    if (!playerGoesFirst) {
-        const bossCardIndices = bossSelectCards();
-        bossPlayedCards = bossCardIndices.map(idx => bossHand[idx]);
-        const totalBossCost = bossPlayedCards.reduce((sum, card) => sum + card.cost, 0);
-        bossMana -= totalBossCost;
-        bossCardIndices.forEach(idx => bossHand[idx] = null);
-        displayBossPlayedCards();
-    }
-
-    // Update UI
+    isPlayerTurn = true;
     document.getElementById('ability-desc').textContent = 'Drag cards to play area or burn slot and end turn when ready.';
     document.getElementById('player-card').innerHTML = '';
-    if (playerGoesFirst) document.getElementById('boss-card').innerHTML = '';
+    document.getElementById('boss-card').innerHTML = '';
     document.getElementById('result').textContent = '';
     document.getElementById('end-turn').disabled = false;
     document.getElementById('next-round').disabled = true;
@@ -324,7 +391,7 @@ function resetGame() {
     playerManaReset = false;
     bossManaReset = false;
     isFirstTurn = true;
-    playerGoesFirst = true;
+    isPlayerTurn = true;
     for (let i = 0; i < 4; i++) {
         playerHand[i] = drawCard();
         bossHand[i] = drawBossCard();
@@ -359,23 +426,29 @@ document.getElementById('player-card').addEventListener('dragover', (e) => {
 document.getElementById('player-card').addEventListener('drop', (e) => {
     e.preventDefault();
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (playerHand[index] !== null) {
-        const cardToPlay = playerHand[index];
-        if (playedCards.length > 0 && cardToPlay.type !== playedCards[0].type) {
-            alert('All played cards must be of the same type!');
-            return;
-        }
-        if (cardToPlay.cost > playerMana) {
-            alert('Not enough mana to play this card!');
-            return;
-        }
-        playerMana -= cardToPlay.cost;
-        playedCards.push(cardToPlay);
-        playerHand[index] = null;
-        displayHand();
-        displayPlayedCards();
-        document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+    if (playerHand[index] === null || !isPlayerTurn) return;
+
+    const cardToPlay = playerHand[index];
+
+    // Type check first: ensure all cards in playedCards are of the same type
+    if (playedCards.length > 0 && cardToPlay.type !== playedCards[0].type) {
+        alert('All played cards must be of the same type!');
+        return;
     }
+
+    // Mana check second
+    if (cardToPlay.cost > playerMana) {
+        alert('Not enough mana to play this card!');
+        return;
+    }
+
+    // If both checks pass, accept the card
+    playerMana -= cardToPlay.cost;
+    playedCards.push(cardToPlay);
+    playerHand[index] = null;
+    displayHand();
+    displayPlayedCards();
+    document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
 });
 
 // Drag-and-drop setup for burn-slot
@@ -386,7 +459,7 @@ document.getElementById('burn-slot').addEventListener('dragover', (e) => {
 document.getElementById('burn-slot').addEventListener('drop', (e) => {
     e.preventDefault();
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    if (playerHand[index] !== null) {
+    if (playerHand[index] !== null && isPlayerTurn) {
         const burnedCard = playerHand[index];
         playerMana = Math.min(playerMana + burnedCard.cost, 15);
         playerDiscard.push(burnedCard);
