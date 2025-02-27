@@ -258,13 +258,6 @@ function animateBossPlay(indices, targetId, callback) {
 
 // Resolve turn
 function resolveTurn() {
-    const totalCost = playedCards.reduce((sum, card) => sum + card.cost, 0);
-    if (totalCost > playerMana) {
-        alert('Not enough mana to play these cards!');
-        return;
-    }
-    playerMana -= totalCost;
-
     // Boss plays cards
     const bossSelectedIndices = bossSelectCards();
     bossPlayedCards = bossSelectedIndices.map(idx => bossHand[idx]);
@@ -334,7 +327,7 @@ function resolveTurn() {
     else resultText += 'No damage dealt.';
     document.getElementById('result').textContent = resultText;
 
-    // Animate boss cards
+    // Animate boss cards and check win condition
     animateBossPlay(bossSelectedIndices, 'boss-card', () => {
         bossSelectedIndices.forEach(idx => bossHand[idx] = null);
         displayBossHand();
@@ -342,6 +335,15 @@ function resolveTurn() {
         document.getElementById('reveal-card').disabled = true;
         document.getElementById('next-round').disabled = false;
         isPlayerTurn = false; // End player turn
+
+        // Check for win condition
+        if (playerHealth <= 0) {
+            alert('Boss wins!');
+            resetGame();
+        } else if (bossHealth <= 0) {
+            alert('Player wins!');
+            resetGame();
+        }
     });
 
     playerManaReset = playerMana === 0;
@@ -428,15 +430,14 @@ document.getElementById('player-card').addEventListener('drop', (e) => {
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (playerHand[index] !== null && isPlayerTurn) {
         const cardToPlay = playerHand[index];
-        const currentPlayedCost = playedCards.reduce((sum, card) => sum + card.cost, 0);
-        const newTotalCost = currentPlayedCost + cardToPlay.cost;
-        if (newTotalCost > playerMana) {
+        if (cardToPlay.cost > playerMana) {
             alert('Not enough mana to play this card!');
         } else {
+            playerMana -= cardToPlay.cost; // Deduct mana immediately
             playedCards.push(cardToPlay);
             playerHand[index] = null;
-            displayHand();
-            displayPlayedCards();
+            displayHand(); // Update hand and mana display
+            displayPlayedCards(); // Show the played card
         }
     }
 });
@@ -451,11 +452,10 @@ document.getElementById('burn-slot').addEventListener('drop', (e) => {
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (playerHand[index] !== null && isPlayerTurn) {
         const burnedCard = playerHand[index];
-        playerMana = Math.min(playerMana + burnedCard.cost, 15); // Gain mana equal to card's cost
+        playerMana = Math.min(playerMana + burnedCard.cost, 15); // Gain mana immediately
         playerDiscard.push(burnedCard);
         playerHand[index] = null;
-        displayHand();
-        document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+        displayHand(); // Update hand and mana display
     }
 });
 
