@@ -260,7 +260,7 @@ function animateBossPlay(indices, targetId, callback) {
 function resolveTurn() {
     const totalCost = playedCards.reduce((sum, card) => sum + card.cost, 0);
     if (totalCost > playerMana) {
-        alert('Not enough mana!');
+        alert('Not enough mana to play these cards!');
         return;
     }
     playerMana -= totalCost;
@@ -427,10 +427,17 @@ document.getElementById('player-card').addEventListener('drop', (e) => {
     e.preventDefault();
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (playerHand[index] !== null && isPlayerTurn) {
-        playedCards.push(playerHand[index]);
-        playerHand[index] = null;
-        displayHand();
-        displayPlayedCards();
+        const cardToPlay = playerHand[index];
+        const currentPlayedCost = playedCards.reduce((sum, card) => sum + card.cost, 0);
+        const newTotalCost = currentPlayedCost + cardToPlay.cost;
+        if (newTotalCost > playerMana) {
+            alert('Not enough mana to play this card!');
+        } else {
+            playedCards.push(cardToPlay);
+            playerHand[index] = null;
+            displayHand();
+            displayPlayedCards();
+        }
     }
 });
 
