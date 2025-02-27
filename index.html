@@ -10,16 +10,25 @@
     <div class="game-container">
         <h1>Card Battle Game</h1>
         <div id="deck">Deck: <span id="deck-count">30</span></div>
-        <div id="boss-health">Boss Health: 30</div>
+        <div id="boss-health">Boss Health: 30 | Mana: 3</div>
+        <div id="boss-hand"></div>
         <div class="battle-area">
             <div id="boss-card">?</div>
             <div id="player-card">?</div>
         </div>
         <div id="hand"></div>
-        <div id="player-health">Player Health: 30 | Mana: 3/3</div>
+        <div id="player-health">Player Health: 30 | Mana: 3</div>
         <div id="ability-desc">Select a card to see its ability.</div>
-        <button id="submit-card">Play Cards</button>
-        <button id="next-round" style="display: none;">Next Round</button>
+        <div class="controls">
+            <div class="control-row">
+                <button id="play-cards">Play Cards</button>
+                <button id="end-turn">End Turn</button>
+            </div>
+            <div class="control-row">
+                <button id="reveal-card">Reveal Card</button>
+                <button id="next-round" disabled>Next Round</button>
+            </div>
+        </div>
         <div id="result"></div>
     </div>
     <script src="game.js"></script>
