@@ -3,6 +3,67 @@
     padding: 20px;
 }
 
+/* Tutorial Button */
+#tutorial-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 10px 20px;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1001; /* Ensures it stays above other elements */
+}
+
+/* Tutorial Panel */
+#tutorial-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#tutorial-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto; /* Scrollable if content is long */
+    text-align: left;
+}
+
+#tutorial-content h2, #tutorial-content h3 {
+    color: #333;
+}
+
+#tutorial-content p, #tutorial-content ul {
+    color: #555;
+}
+
+#tutorial-content img {
+    margin: 10px 0;
+    border: 1px solid #ccc;
+}
+
+#close-tutorial {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #f44336; /* Red */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
 .card {
     display: inline-block;
     width: 100px;
@@ -90,4 +151,15 @@
     display: flex;
     justify-content: center;
     gap: 10px;
+}
+
+.info-box {
+    background-color: #f9f9f9;
+    border: 1px solid #333;
+    padding: 8px;
+    font-size: 14px;
+    color: #333;
+    z-index: 1000; /* Ensures it appears above other elements */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    max-width: 200px; /* Prevents it from becoming too wide */
 }
