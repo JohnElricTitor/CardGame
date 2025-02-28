@@ -1,6 +1,6 @@
 // Pusher setup (replace with your credentials)
-const pusher = new Pusher('YOUR_PUSHER_KEY', {
-    cluster: 'YOUR_PUSHER_CLUSTER',
+const pusher = new Pusher('54bd73077135a1b7a703', {
+    cluster: 'us2',
     encrypted: true
 });
 
