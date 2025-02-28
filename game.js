@@ -1,4 +1,4 @@
-// Pusher setup with your credentials
+// Pusher setup with your credentials (replace with your actual key)
 const pusher = new Pusher('54bd73077135a1b7a703', {
     cluster: 'us2',
     encrypted: true
@@ -49,8 +49,8 @@ let opponentHealth = 30;
 let playerMana = 3;
 let opponentMana = 3;
 let isPlayerTurn = false;
-let playedCards = []; // Player's played cards
-let burnedCards = []; // Player's burned cards
+let playedCards = [];
+let burnedCards = [];
 let roomCode = null;
 let playerId = null;
 let channel = null;
@@ -59,13 +59,6 @@ let channel = null;
 for (let i = 0; i < 4; i++) {
     playerHand[i] = drawCard(playerDeck, playerDiscard);
 }
-
-// Ability descriptions
-const abilityDescriptions = {
-    heal: 'Restore 3 health when played.',
-    debuff: "Reduce opponent's damage by 2.",
-    shield: 'Block 3 damage when played.'
-};
 
 // Draw card
 function drawCard(deck, discard) {
@@ -96,7 +89,7 @@ function displayHand() {
         }
     });
     document.getElementById('player-health').textContent = `Your Health: ${playerHealth} | Mana: ${playerMana}`;
-    document.getElementById('deck-count').textContent = playerDeck.length;
+    document.getElementById('deck-count').textContent = `Deck: ${playerDeck.length}`;
 }
 
 // Display opponent hand (always visible)
@@ -151,7 +144,7 @@ function displayOpponentPlayedCards(cards) {
 }
 
 // Room management
-document.getElementById('create-room').onclick = () => {
+document.getElementById('create-room').addEventListener('click', () => {
     roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     playerId = 'player1';
     channel = pusher.subscribe(`presence-${roomCode}`);
@@ -159,9 +152,9 @@ document.getElementById('create-room').onclick = () => {
         document.getElementById('room-status').textContent = `Room created! Code: ${roomCode}. Waiting for opponent...`;
         setupChannelEvents();
     });
-};
+});
 
-document.getElementById('join-room').onclick = () => {
+document.getElementById('join-room').addEventListener('click', () => {
     roomCode = document.getElementById('room-code-input').value.toUpperCase();
     playerId = 'player2';
     channel = pusher.subscribe(`presence-${roomCode}`);
@@ -177,7 +170,7 @@ document.getElementById('join-room').onclick = () => {
             channel.trigger('client-start-game', {});
         }
     });
-};
+});
 
 // Setup Pusher channel events
 function setupChannelEvents() {
@@ -219,7 +212,7 @@ function setupChannelEvents() {
 }
 
 // End turn logic
-document.getElementById('end-turn').onclick = () => {
+document.getElementById('end-turn').addEventListener('click', () => {
     if (!isPlayerTurn) return;
     isPlayerTurn = false;
     document.getElementById('end-turn').disabled = true;
@@ -235,7 +228,7 @@ document.getElementById('end-turn').onclick = () => {
     });
 
     channel.trigger('client-opponent-hand', { hand: handData });
-};
+});
 
 // Resolve battle
 function resolveBattle(opponentPlayedCards) {
@@ -289,9 +282,9 @@ function resolveBattle(opponentPlayedCards) {
 }
 
 // Start next round
-document.getElementById('next-round').onclick = () => {
+document.getElementById('next-round').addEventListener('click', () => {
     startNextRound();
-};
+});
 
 function startNextRound() {
     playerMana = playerMana === 0 ? 3 : Math.min(15, playerMana + 3);
@@ -375,12 +368,12 @@ document.getElementById('burn-slot').addEventListener('drop', e => {
 });
 
 // Tutorial controls
-document.getElementById('tutorial-button').onclick = () => {
+document.getElementById('tutorial-button').addEventListener('click', () => {
     document.getElementById('tutorial-panel').style.display = 'block';
-};
-document.getElementById('close-tutorial').onclick = () => {
+});
+document.getElementById('close-tutorial').addEventListener('click', () => {
     document.getElementById('tutorial-panel').style.display = 'none';
-};
+});
 
 // Initial display
 displayHand();
