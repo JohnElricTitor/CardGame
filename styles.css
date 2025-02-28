@@ -1,121 +1,110 @@
-body {
-    font-family: Arial, sans-serif;
+/* Base game styles */
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
     background-color: #f0f0f0;
+}
+
+/* Tutorial Button */
+#tutorial-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 10px 20px;
+    background-color: #4CAF50; /* Green */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1001; /* Ensures it stays above other elements */
+}
+
+/* Tutorial Panel */
+#tutorial-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent overlay */
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    margin: 0;
+    z-index: 1000;
 }
 
-.game-container {
+#tutorial-content {
     background-color: white;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 800px;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto; /* Scrollable if content is long */
+    text-align: left;
 }
 
-#room-management {
-    margin-bottom: 20px;
+#tutorial-content h2, #tutorial-content h3 {
+    color: #333;
 }
 
-#room-code-input {
-    margin: 0 10px;
-    padding: 5px;
+#tutorial-content p, #tutorial-content ul {
+    color: #555;
 }
 
+#close-tutorial {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #f44336; /* Red */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Card styles */
 .card {
     width: 100px;
     height: 150px;
-    background-color: #ddd;
-    border: 2px solid #333;
-    border-radius: 5px;
-    display: inline-block;
     margin: 5px;
+    background-size: cover;
     position: relative;
-    cursor: move;
+    display: inline-block;
+}
+
+.empty-slot {
+    width: 100px;
+    height: 150px;
+    margin: 5px;
+    border: 1px dashed #ccc;
+    display: inline-block;
 }
 
 .damage {
     position: absolute;
     top: 5px;
     right: 5px;
-    font-weight: bold;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 5px;
 }
 
 .mana-cost {
     position: absolute;
     bottom: 5px;
     left: 5px;
-    font-weight: bold;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 5px;
 }
 
 .ability {
     position: absolute;
-    bottom: 5px;
-    right: 5px;
-    font-size: 12px;
+    bottom: 25px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 5px;
 }
 
-.battle-area {
-    display: flex;
-    justify-content: space-between;
-    margin: 20px 0;
-}
-
-#opponent-card, #player-card, #burn-slot {
-    width: 220px;
-    height: 160px;
-    border: 2px dashed #666;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: center;
-}
-
-#burn-slot {
-    background-color: #ffcccc;
-}
-
-#hand, #opponent-hand {
-    display: flex;
-    justify-content: center;
-    margin: 10px 0;
-}
-
-button {
-    padding: 10px 20px;
-    margin: 5px;
-    font-size: 16px;
-    cursor: pointer;
-}
-
-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-
-#ability-desc {
-    margin: 10px 0;
-    font-style: italic;
-}
-
-#tutorial-panel {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    max-width: 500px;
-    text-align: left;
-}
-
-#tutorial-content {
-    max-height: 400px;
-    overflow-y: auto;
-}
+/* Other styles (assumed to exist) */
