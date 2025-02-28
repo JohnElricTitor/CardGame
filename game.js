@@ -55,7 +55,7 @@ let bossPlayedCards = []; // Cards selected by boss
 let isFirstTurn = true;
 let isPlayerTurn = true; // Flag to control player actions
 
-// **New: Define ability descriptions for the info box**
+// Define ability descriptions for the info box
 const abilityDescriptions = {
     heal: 'Restore 3 health when played.',
     debuff: "Reduce opponent's damage by 2.",
@@ -92,7 +92,7 @@ for (let i = 0; i < 4; i++) {
     bossHand[i] = drawBossCard();
 }
 
-// **New: Function to create the info box**
+// Function to create the info box
 function createInfoBox(ability) {
     const infoBox = document.createElement('div');
     infoBox.classList.add('info-box');
@@ -100,7 +100,6 @@ function createInfoBox(ability) {
     return infoBox;
 }
 
-// Display player hand with **new hover functionality**
 // Display player hand with hover functionality
 function displayHand() {
     const handDiv = document.getElementById('hand');
@@ -151,7 +150,7 @@ function displayHand() {
     document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
 }
 
-// Display boss hand with **new hover functionality**
+// Display boss hand with hover functionality
 function displayBossHand() {
     const bossHandDiv = document.getElementById('boss-hand');
     bossHandDiv.innerHTML = '';
@@ -167,8 +166,8 @@ function displayBossHand() {
                     <div class="mana-cost">${card.cost}</div>
                     ${card.ability ? `<div class="ability">${card.ability.charAt(0).toUpperCase() + card.ability.slice(1)}</div>` : ''}
                 `;
-                
-                // **New: Add hover events for cards with abilities**
+
+                // Add hover events for cards with abilities
                 if (card.ability) {
                     cardDiv.addEventListener('mouseenter', (e) => {
                         const infoBox = createInfoBox(card.ability);
@@ -201,7 +200,7 @@ function displayBossHand() {
     document.getElementById('boss-health').textContent = `Boss Health: ${bossHealth} | Mana: ${bossMana}`;
 }
 
-// Display played cards (player) - unchanged
+// Display played cards (player)
 function displayPlayedCards() {
     const playerCardDiv = document.getElementById('player-card');
     playerCardDiv.innerHTML = '';
@@ -218,7 +217,7 @@ function displayPlayedCards() {
     });
 }
 
-// Reveal card - unchanged
+// Reveal card
 function revealCard(index) {
     if (playerMana < cardRevealCost) {
         alert('Not enough mana to reveal a card!');
@@ -230,7 +229,7 @@ function revealCard(index) {
     displayHand(); // Update mana display
 }
 
-// Boss card selection - unchanged
+// Boss card selection
 function bossSelectCards() {
     const availableTypes = [...new Set(bossHand.map(card => card ? card.type : null).filter(Boolean))];
     if (availableTypes.length === 0) return [];
@@ -254,7 +253,7 @@ function bossSelectCards() {
     return validCombinations[Math.floor(Math.random() * validCombinations.length)];
 }
 
-// Animate boss cards - unchanged
+// Animate boss cards
 function animateBossPlay(indices, targetId, callback) {
     const targetDiv = document.getElementById(targetId);
     const handCards = document.querySelectorAll('#boss-hand .card');
@@ -308,7 +307,7 @@ function animateBossPlay(indices, targetId, callback) {
     }, 500);
 }
 
-// Resolve turn - unchanged
+// Resolve turn
 function resolveTurn() {
     const bossSelectedIndices = bossSelectCards();
     bossPlayedCards = bossSelectedIndices.map(idx => bossHand[idx]);
@@ -395,7 +394,7 @@ function resolveTurn() {
     isFirstTurn = false;
 }
 
-// Start turn - unchanged
+// Start turn
 function startTurn() {
     if (!isFirstTurn) {
         if (playerManaReset) playerMana = 3;
@@ -421,7 +420,7 @@ function startTurn() {
     displayPlayedCards();
 }
 
-// Reset game - unchanged
+// Reset game
 function resetGame() {
     playerDeck = shuffle([...baseDeck]);
     playerHand = Array(4).fill(null);
@@ -447,7 +446,7 @@ function resetGame() {
     startTurn();
 }
 
-// Button handlers - unchanged
+// Button handlers
 document.getElementById('end-turn').onclick = () => {
     resolveTurn();
 };
@@ -464,7 +463,7 @@ document.getElementById('next-round').onclick = () => {
     startTurn();
 };
 
-// Drag-and-drop setup for player-card - unchanged
+// Drag-and-drop setup for player-card with base type and mana check
 document.getElementById('player-card').addEventListener('dragover', (e) => {
     e.preventDefault();
 });
@@ -474,20 +473,31 @@ document.getElementById('player-card').addEventListener('drop', (e) => {
     const index = parseInt(e.dataTransfer.getData('text/plain'), 10);
     if (playerHand[index] !== null && isPlayerTurn) {
         const cardToPlay = playerHand[index];
+        const playSlotType = playedCards.length > 0 ? playedCards[0].type : null;
+
+        // Check if the play slot is empty or if the card's type matches the existing type
+        if (playSlotType && cardToPlay.type !== playSlotType) {
+            alert('All played cards must be of the same type!');
+            return;
+        }
+
+        // Check if the player has enough mana
         if (cardToPlay.cost > playerMana) {
             alert('Not enough mana to play this card!');
-        } else {
-            playerMana -= cardToPlay.cost;
-            playedCards.push(cardToPlay);
-            playerHand[index] = null;
-            displayHand();
-            displayPlayedCards();
-            document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
+            return;
         }
+
+        // Play the card
+        playerMana -= cardToPlay.cost;
+        playedCards.push(cardToPlay);
+        playerHand[index] = null;
+        displayHand();
+        displayPlayedCards();
+        document.getElementById('player-health').textContent = `Player Health: ${playerHealth} | Mana: ${playerMana}`;
     }
 });
 
-// Drag-and-drop setup for burn-slot - unchanged
+// Drag-and-drop setup for burn-slot
 document.getElementById('burn-slot').addEventListener('dragover', (e) => {
     e.preventDefault();
 });
@@ -514,5 +524,6 @@ document.getElementById('tutorial-button').addEventListener('click', () => {
 document.getElementById('close-tutorial').addEventListener('click', () => {
     document.getElementById('tutorial-panel').style.display = 'none';
 });
+
 // Initialize
 startTurn();
