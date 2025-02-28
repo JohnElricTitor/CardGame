@@ -1,37 +1,121 @@
-.game-container {
-    max-width: 800px;
-    margin: 20px auto;
-    text-align: center;
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
 }
+
+.game-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 800px;
+}
+
+#room-management {
+    margin-bottom: 20px;
+}
+
+#room-code-input {
+    margin: 0 10px;
+    padding: 5px;
+}
+
 .card {
     width: 100px;
     height: 150px;
+    background-color: #ddd;
+    border: 2px solid #333;
+    border-radius: 5px;
     display: inline-block;
     margin: 5px;
-    background-size: cover;
     position: relative;
-    color: white;
-    text-shadow: 1px 1px black;
+    cursor: move;
 }
-.empty-slot {
-    width: 100px;
-    height: 150px;
-    display: inline-block;
-    margin: 5px;
-    border: 2px dashed gray;
+
+.damage {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-weight: bold;
 }
+
+.mana-cost {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    font-weight: bold;
+}
+
+.ability {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 12px;
+}
+
 .battle-area {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     margin: 20px 0;
 }
-#burn-slot {
-    width: 100px;
-    height: 150px;
-    border: 2px solid red;
-    line-height: 150px;
+
+#opponent-card, #player-card, #burn-slot {
+    width: 220px;
+    height: 160px;
+    border: 2px dashed #666;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
 }
-.damage { position: absolute; top: 5px; left: 5px; }
-.mana-cost { position: absolute; bottom: 5px; right: 5px; }
-.ability { position: absolute; bottom: 5px; left: 5px; }
-button { margin: 5px; }
+
+#burn-slot {
+    background-color: #ffcccc;
+}
+
+#hand, #opponent-hand {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+#ability-desc {
+    margin: 10px 0;
+    font-style: italic;
+}
+
+#tutorial-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    max-width: 500px;
+    text-align: left;
+}
+
+#tutorial-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
