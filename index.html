@@ -20,12 +20,18 @@
                 <h3>What Are Cards?</h3>
                 <p>Cards are your tools to fight your opponent. Each card in your hand has:</p>
                 <ul>
-                    <li><strong>Type</strong>: Rock, Paper, or Scissors. It works like the classic game: Rock beats Scissors, Scissors beat Paper, Paper beats Rock.</li>
+                    <li><strong>Type</strong>: Rock, Paper, or Scissors. It works like the classic game:
+                        <ul>
+                            <li>Rock beats Scissors.</li>
+                            <li>Scissors beat Paper.</li>
+                            <li>Paper beats Rock.</li>
+                        </ul>
+                    </li>
                     <li><strong>Damage</strong>: The number at the <strong>top right</strong> of the card. This shows how much damage it deals if it wins the matchup.</li>
                     <li><strong>Mana Cost</strong>: The number at the <strong>bottom left</strong>. This is how much mana you need to play it.</li>
                     <li><strong>Abilities</strong>: Some cards have extra effects like Heal, Debuff, or Shield.</li>
                 </ul>
-                
+
                 <h3>How to Use Your Cards</h3>
                 <p>You have two options each turn:</p>
                 <ul>
@@ -33,24 +39,25 @@
                     <li><strong>Burning a Card</strong>: Drag a card to the burn slot to discard it and gain mana equal to its mana cost.</li>
                 </ul>
                 <p><strong>Important</strong>: Once you drag a card to the play slot, it’s locked in—you can’t undo it.</p>
-                
+
                 <h3>Managing Mana</h3>
                 <p>Mana is your energy for playing cards and making moves:</p>
                 <ul>
                     <li>You start with 3 mana and gain 3 more each turn (unless you ended with 0 mana, then it resets to 3).</li>
-                    <li>Spend mana to play cards.</li>
+                    <li>Spend mana to play cards or reveal your opponent’s cards.</li>
                     <li>Burn cards to gain extra mana.</li>
                 </ul>
-                
+
                 <h3>Tips for Beginners</h3>
-                <p>Pay attention to your opponent's cards and choose your plays to counter their strategy.</p>
-                
+                <p>The goal is to use your mana wisely to see as much of your <strong>opponent’s hand</strong> as possible, allowing you to counter with the best possible combination of cards.</p>
+
                 <p>That’s it! You’re ready to play. Good luck outsmarting your opponent!</p>
+                
                 <button id="close-tutorial">Close</button>
             </div>
         </div>
 
-        <h1>Card Battle Game</h1>
+        <!-- Existing game elements -->
         <div id="deck">Deck: <span id="deck-count">30</span></div>
         <div id="boss-health">Opponent Health: 30 | Mana: 3</div>
         <div id="boss-hand"></div>
@@ -67,6 +74,7 @@
                 <button id="end-turn">End Turn</button>
             </div>
             <div class="control-row">
+                <button id="reveal-card">Reveal Card</button>
                 <button id="next-round" disabled>Next Round</button>
             </div>
         </div>
