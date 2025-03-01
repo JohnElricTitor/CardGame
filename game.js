@@ -2,7 +2,7 @@
 const DECK_CONFIG = {
     types: ['rock', 'paper', 'scissors'],
     damageRange: { min: 1, max: 10 },
-    abilities: ['heal', 'debuff', 'shield', 'freeze', 'burn'], // Added 'burn'
+    abilities: ['heal', 'debuff', 'shield', 'freeze', 'burn'],
     abilityChance: 0.2
 };
 
@@ -77,9 +77,10 @@ class GameState {
         this.lastRoundWinner = null;
         this.playerHasPlayed = false;
         this.bossHasPlayed = false;
-        this.frozenBossCards = []; // Tracks indices of frozen boss cards
-        this.isSelectingFreezeTarget = false; // Flag for freeze target selection
-        this.isSelectingBurnTarget = false; // Flag for burn target selection
+        this.frozenBossCards = [];
+        this.isSelectingFreezeTarget = false;
+        this.isSelectingBurnTarget = false;
+        this.areBossCardsRevealed = true; // Controls visibility of boss played cards
 
         // Initial deal
         for (let i = 0; i < HAND_SIZE; i++) {
@@ -123,7 +124,7 @@ class GameState {
         this.frozenBossCards = [];
         this.isSelectingFreezeTarget = false;
         this.isSelectingBurnTarget = false;
-        // Re-deal initial hands
+        this.areBossCardsRevealed = true;
         for (let i = 0; i < HAND_SIZE; i++) {
             this.playerHand[i] = this.drawCard('player');
             this.bossHand[i] = this.drawCard('boss');
@@ -133,13 +134,13 @@ class GameState {
 
 let gameState = new GameState();
 
-// Ability descriptions for tooltips
+// Ability descriptions
 const abilityDescriptions = {
     heal: 'Restore 3 health when played.',
     debuff: "Reduce opponent's damage by 2.",
     shield: 'Block 3 damage when played.',
     freeze: "Freeze an opponent's card, making it unplayable until the next round.",
-    burn: "Burn one of the opponent's cards, removing it from their hand." // Added burn description
+    burn: "Burn one of the opponent's cards, removing it from their hand."
 };
 
 // Reusable card element creation
@@ -194,10 +195,10 @@ function displayHand() {
         }
     });
     document.getElementById('player-health').textContent = `Player Health: ${gameState.playerHealth} | Mana: ${gameState.playerMana}`;
-    document.getElementById('deck-count').textContent = gameState.playerDeck.length; // Update deck count
+    document.getElementById('deck-count').textContent = gameState.playerDeck.length;
 }
 
-// Display boss hand with freeze and burn selection
+// Display boss hand
 function displayBossHand() {
     const bossHandDiv = document.getElementById('boss-hand');
     bossHandDiv.innerHTML = '';
@@ -207,7 +208,6 @@ function displayBossHand() {
             if (gameState.frozenBossCards.includes(index)) {
                 cardDiv.classList.add('frozen');
             }
-            // Handle freeze target selection
             if (gameState.isSelectingFreezeTarget && !gameState.frozenBossCards.includes(index)) {
                 cardDiv.addEventListener('click', () => {
                     if (gameState.isSelectingFreezeTarget) {
@@ -217,7 +217,6 @@ function displayBossHand() {
                     }
                 }, { once: true });
             }
-            // Handle burn target selection
             if (gameState.isSelectingBurnTarget) {
                 cardDiv.addEventListener('click', () => {
                     if (gameState.isSelectingBurnTarget) {
@@ -294,7 +293,7 @@ function bossSelectCards() {
     return selected.map(card => gameState.bossHand.indexOf(card));
 }
 
-// Animate boss cards with CSS transitions
+// Animate boss cards with CSS transitions, respecting reveal state
 function animateBossPlay(indices, targetId, callback) {
     const targetDiv = document.getElementById(targetId);
     const handCards = document.querySelectorAll('#boss-hand .card');
@@ -304,7 +303,7 @@ function animateBossPlay(indices, targetId, callback) {
     setTimeout(() => {
         targetDiv.innerHTML = '';
         gameState.bossPlayedCards.forEach(card => {
-            const playedCard = createCardElement(card, -1, false, true);
+            const playedCard = createCardElement(card, -1, false, gameState.areBossCardsRevealed);
             targetDiv.appendChild(playedCard);
         });
         callback();
@@ -367,22 +366,25 @@ function resolveTurn() {
         gameState.playerHealth -= damage;
     }
 
-    displayHand();
-    displayBossHand();
-    document.getElementById('result').textContent = 
-        `Player Damage: ${playerDamage}\nBoss Damage: ${bossDamage}\n${dealer ? `${dealer} deals ${damage} damage.` : 'No damage dealt.'}`;
-    gameState.lastRoundWinner = damage > 0 ? dealer : null;
-    document.getElementById('next-round').disabled = false;
+    gameState.areBossCardsRevealed = true; // Reveal boss cards after player's turn
+    animateBossPlay(gameState.bossPlayedCards.map(card => gameState.bossHand.indexOf(card)), 'boss-card', () => {
+        displayHand();
+        displayBossHand();
+        document.getElementById('result').textContent = 
+            `Player Damage: ${playerDamage}\nBoss Damage: ${bossDamage}\n${dealer ? `${dealer} deals ${damage} damage.` : 'No damage dealt.'}`;
+        gameState.lastRoundWinner = damage > 0 ? dealer : null;
+        document.getElementById('next-round').disabled = false;
 
-    if (gameState.playerHealth <= 0) { alert('Boss wins!'); gameState.reset(); }
-    else if (gameState.bossHealth <= 0) { alert('Player wins!'); gameState.reset(); }
+        if (gameState.playerHealth <= 0) { alert('Boss wins!'); gameState.reset(); }
+        else if (gameState.bossHealth <= 0) { alert('Player wins!'); gameState.reset(); }
 
-    gameState.playerManaReset = gameState.playerMana === 0;
-    gameState.bossManaReset = gameState.bossMana === 0;
-    gameState.isFirstTurn = false;
+        gameState.playerManaReset = gameState.playerMana === 0;
+        gameState.bossManaReset = gameState.bossMana === 0;
+        gameState.isFirstTurn = false;
+    });
 }
 
-// Start turn logic with boss burn ability
+// Start turn logic
 function startTurn() {
     if (!gameState.isFirstTurn) {
         gameState.playerMana = gameState.playerManaReset ? INITIAL_MANA : Math.min(gameState.playerMana + 3, MAX_MANA);
@@ -396,6 +398,7 @@ function startTurn() {
     gameState.isHandRevealed = false;
     gameState.playerHasPlayed = false;
     gameState.bossHasPlayed = false;
+    gameState.areBossCardsRevealed = true; // Default to revealed unless boss goes first
 
     document.getElementById('end-turn').disabled = false;
     document.getElementById('reveal-card').disabled = false;
@@ -407,7 +410,6 @@ function startTurn() {
     if (gameState.lastRoundWinner === 'boss' && !gameState.isFirstTurn) {
         const indices = bossSelectCards();
         gameState.bossPlayedCards = indices.map(idx => gameState.bossHand[idx]);
-        // Handle boss's burn ability
         gameState.bossPlayedCards.forEach(card => {
             if (card.ability === 'burn') {
                 burnRandomPlayerCard();
@@ -415,6 +417,7 @@ function startTurn() {
         });
         gameState.bossMana -= gameState.bossPlayedCards.reduce((sum, card) => sum + card.cost, 0);
         gameState.bossHasPlayed = true;
+        gameState.areBossCardsRevealed = false; // Hide boss cards initially
         animateBossPlay(indices, 'boss-card', () => {
             indices.forEach(idx => gameState.bossHand[idx] = null);
             displayBossHand();
@@ -444,7 +447,6 @@ document.getElementById('end-turn').onclick = () => {
         if (!gameState.bossHasPlayed) {
             const indices = bossSelectCards();
             gameState.bossPlayedCards = indices.map(idx => gameState.bossHand[idx]);
-            // Handle boss's burn ability
             gameState.bossPlayedCards.forEach(card => {
                 if (card.ability === 'burn') {
                     burnRandomPlayerCard();
